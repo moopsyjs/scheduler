@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "outDir": "./main",
+        "lib": ["ES2015"],
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "strictNullChecks": true,
+        "strict": true
+    },
+    "include": ["index.ts", "./src/**/*"]
+}

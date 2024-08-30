@@ -1,0 +1,22 @@
+{
+  "name": "@moopsyjs/scheduler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./main/index.js",
+  "types": "./main/index.d.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p tsconfig.json"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@moopsyjs/server": "^1.0.0",
+    "@types/ejson": "^2.2.0",
+    "mongodb": "^6.0.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "ejson": "^2.2.3"
+  }
+}
