@@ -124,6 +124,8 @@ export class Scheduler {
         await this.collection.updateOne({ _id: event._id }, { $set: { running: false } });
       } else { // Event does repeat
         await this.collection.deleteOne({ _id: event._id });
+        // @ts-expect-error doesn't like us deleting _id
+        delete event._id; // We just deleted the previous event, but just to be safe in case of race conditions on the DB level we remove the _id field
         await this.collection.insertOne({
           ...event,
           assignedServer: this.server.serverId,

@@ -1,6 +1,6 @@
 {
   "name": "@moopsyjs/scheduler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "./main/index.js",
   "types": "./main/index.d.js",
