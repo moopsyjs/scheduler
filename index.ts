@@ -40,6 +40,13 @@ export interface SchedulerConfig {
    * Default 86400000 (24 hours)
    */
   expiryDelay: number;
+
+  /**
+   * Enable verbose logs
+   * 
+   * Default false
+   */
+  verbose?: boolean;
 }
 
 export class Scheduler {
@@ -103,6 +110,7 @@ export class Scheduler {
       await this.collection.updateMany({ _id: { $in: eventsToRun.map(i => i._id) } }, { $set: { running: true } });
 
       for (const event of eventsToRun) {
+        if(this.config?.verbose === true) console.log(`[@moopsyjs/scheduler] Running event ${event.name}`);
         void this._run(event);
       }
     }, this.checkInterval);
