@@ -18,6 +18,13 @@ export interface ScheduledEventDBEntry {
 
 export interface SchedulerConfig {
   /**
+   * Whether this server may be used to run jobs.
+   * 
+   * Default true
+   */
+  isRunner?: boolean;
+
+  /**
    * How often to check for events to run.
    * 
    * Default 10000 (10 seconds)
@@ -80,6 +87,10 @@ export class Scheduler {
   };
 
   private readonly startup = async (): Promise<void> => {
+    if(this.config?.isRunner === false) return;
+
+    if(this.config?.verbose === true) console.log(`[@moopsyjs/scheduler] Starting up...`);
+
     await this.collection.deleteMany({
       on: { $lt: new Date(Date.now() - this.expiryDelay) }
     });
