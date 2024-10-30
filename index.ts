@@ -121,7 +121,7 @@ export class Scheduler {
       await this.collection.updateMany({ _id: { $in: eventsToRun.map(i => i._id) } }, { $set: { running: true } });
 
       for (const event of eventsToRun) {
-        if(this.config?.verbose === true) console.log(`[@moopsyjs/scheduler] Running event ${event.name}`);
+        if(this.config?.verbose === true) console.log(`[@moopsyjs/scheduler] Running event ${event.name} (${event._id.toString()}/${event.uniqueKey})`);
         void this._run(event);
       }
     }, this.checkInterval);
