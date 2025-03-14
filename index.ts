@@ -1,5 +1,5 @@
-import type { MoopsyServer } from '@moopsyjs/server';
 import type { Db, Collection, WithId } from 'mongodb';
+import * as crypto from 'crypto';
 
 const DEFAULT_CHECK_INTERVAL = 10000;
 const DEFAULT_RECAPTURE_DELAY = 120_000;
@@ -54,10 +54,17 @@ export interface SchedulerConfig {
    * Default false
    */
   verbose?: boolean;
+
+  /**
+   * Allows separating event queues within the same database.
+   * 
+   * Works by utilizing a different Mongo collection for each namespace.
+   */
+  namespace?: string | null;
 }
 
 export class Scheduler {
-  server: MoopsyServer<any, any>;
+  serverId: string;
   db: Db;
   collection: Collection<ScheduledEventDBEntry>;
   handlers: {[k: string]: (...params: any) => Promise<any>} = {};
@@ -65,10 +72,13 @@ export class Scheduler {
   private readonly recaptureDelay: number;
   private readonly expiryDelay: number;
 
-  public constructor (server: MoopsyServer<any, any>, db: Db, private config?: Partial<SchedulerConfig>) {
-    this.server = server;
+  public constructor (
+    db: Db,
+    private config?: Partial<SchedulerConfig>
+  ) {
+    this.serverId = crypto.randomBytes(16).toString('hex');
     this.db = db;
-    this.collection = db.collection<ScheduledEventDBEntry>('_scheduled-events');
+    this.collection = db.collection<ScheduledEventDBEntry>('_scheduled-events' + (config?.namespace ? `-${config.namespace}` : ''));
     this.checkInterval = config?.checkInterval ?? DEFAULT_CHECK_INTERVAL;
     this.recaptureDelay = config?.recaptureDelay ?? DEFAULT_RECAPTURE_DELAY;
     this.expiryDelay = config?.expiryDelay ?? DEFAULT_EXPIRY_DELAY;
@@ -78,7 +88,7 @@ export class Scheduler {
     void this.startup();
 
     process.on('exit', () => {
-      void this.collection.updateMany({ assignedServer: this.server.serverId }, { $set: { assignedServer: null } });
+      void this.collection.updateMany({ assignedServer: this.serverId }, { $set: { assignedServer: null } });
     });
   }
 
@@ -100,18 +110,18 @@ export class Scheduler {
         {captured: {$exists:false}},
         {captured: {$lt: new Date(Date.now() - this.recaptureDelay)}}
       ]
-    }, { $set: { assignedServer: this.server.serverId } });
+    }, { $set: { assignedServer: this.serverId } });
 
     // Claim all events that have no assigned server every 60s
     setInterval(async () => {
-      await this.collection.updateMany({ assignedServer: null }, { $set: { assignedServer: this.server.serverId, captured: new Date() } });
+      await this.collection.updateMany({ assignedServer: null }, { $set: { assignedServer: this.serverId, captured: new Date() } });
     }, 60 * 1000)
 
     // Check for events and run every 10s
     setInterval(async () => {
       const eventsToRun = await this.collection.find({
         $and: [
-          { assignedServer: this.server.serverId },
+          { assignedServer: this.serverId },
           { on: { $lt: new Date(Date.now() + this.checkInterval) } },
           { running: false }
         ]
@@ -147,7 +157,7 @@ export class Scheduler {
         delete event._id; // We just deleted the previous event, but just to be safe in case of race conditions on the DB level we remove the _id field
         await this.collection.insertOne({
           ...event,
-          assignedServer: this.server.serverId,
+          assignedServer: this.serverId,
           on: new Date(event.on.valueOf() + event.repeat)
         });
       }
@@ -163,7 +173,7 @@ export class Scheduler {
       name,
       params,
       on,
-      assignedServer: this.server.serverId,
+      assignedServer: this.serverId,
       running: false,
       repeat,
       uniqueKey,
